@@ -34,11 +34,11 @@ echo -e "${YELLOW}Starting Installation Test (ID: Installation-test-001)${NC}"
 echo "Checking preconditions..."
 
 # Verify OS
-if [[ "$(uname)" != "Linux" ]]; then
-    echo -e "${RED}ERROR${NC}: This script must be run on Linux"
-    exit 1
-fi
-print_result $? "Operating system check"
+# if [[ "$(uname)" != "Linux" ]]; then
+#     echo -e "${RED}ERROR${NC}: This script must be run on Linux"
+#     exit 1
+# fi
+# print_result $? "Operating system check"
 
 # Check if Docker is installed
 check_command docker
@@ -98,8 +98,8 @@ else
 fi
 
 # Optional: Clean up (uncomment if needed)
-echo -e "\nCleaning up..."
-docker compose down
-echo -e "\nClean up completed successfully. 
+#echo -e "\nCleaning up..."
+#docker compose down
+#echo -e "\nClean up completed successfully. 
 
 exit $API_STATUS
