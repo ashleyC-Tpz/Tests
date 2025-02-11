@@ -68,15 +68,15 @@ print_result $? "Docker compose up"
 echo "Waiting for application to start..."
 sleep 10
 
-# Test API accessibility
+# Test Orchestrator accessibility (Should be on port 8003)
 echo "Testing API accessibility..."
-curl -s -f http://0.0.0.0:8005/docs > /dev/null
+curl -s -f http://0.0.0.0:8003/ > /dev/null
 API_STATUS=$?
 
 if [ $API_STATUS -eq 0 ]; then
-    echo -e "${GREEN}SUCCESS${NC}: FastAPI application is accessible at http://0.0.0.0:8005"
+    echo -e "${GREEN}SUCCESS${NC}: The Orchestrator application is accessible at http://0.0.0.0:8003"
 else
-    echo -e "${RED}FAILURE${NC}: FastAPI application is not accessible"
+    echo -e "${RED}FAILURE${NC}: The Orchestrator application is not accessible"
     
     # Print Docker logs for troubleshooting
     echo -e "\nDocker logs for troubleshooting:"

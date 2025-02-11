@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Test Case ID: JOb-Submit-test-003
+# Test Case ID: Job-Submit-test-003
 # Description: Aims to verify that the job submission works correctly
 
 # Colors for output
@@ -19,7 +19,15 @@ print_result() {
     fi
 }
 
-echo -e "${YELLOW}Starting Volume Mount Test (ID: Installation-test-002)${NC}"
+# Function to check if a command exists
+check_command() {
+    if ! command -v $1 &> /dev/null; then
+        echo -e "${RED}ERROR${NC}: $1 is not installed"
+        exit 1
+    fi
+}
+
+echo -e "${YELLOW}Starting Job Submit Test (ID: Job-Submit-test-003)${NC}"
 
 # Check precondition: FastAPI accessibility
 echo "Checking preconditions..."
@@ -32,41 +40,65 @@ if [ $? -ne 0 ]; then
 fi
 print_result 0 "FastAPI URL is accessible"
 
+# Check for Python3 installation
+check_command python3
+print_result $? "Python3 is installed"
 
-# Check if job_submit_test.sh exists and is executable
-echo -e "\nChecking job submission capability..."
-if [ -f "./job_submit_test.sh" ]; then
-    if [ ! -x "./job_submit_test.sh" ]; then
-        chmod +x ./job_submit_test.sh
-    fi
-    echo "Running jjob_submit_test.sh..."
-    ./job_submit_test.sh
-    print_result $? "Job submission script execution"
+# Execute request_test.py and capture its output
+echo -e "\nExecuting job submission test..."
+if [ -f "./requests_test.py" ]; then
+    echo "Running requests_test.py..."
     
-    # Wait briefly for potential output generation
-    sleep 5
+    # Capture the output and error separately
+    RESPONSE=$(python3 requests_test.py 2>/tmp/request_error)
+    TEST_EXIT_CODE=$?
+    
+    # Check if the script executed successfully
+    if [ $TEST_EXIT_CODE -ne 0 ]; then
+        echo -e "${RED}FAILED${NC}: Python script execution failed"
+        cat /tmp/request_error
+        exit 1
+    fi
+    
+    # Check if response contains expected message
+    if echo "$RESPONSE" | grep -q "{'message': 'Job submitted'}"; then
+        print_result 0 "Received expected job submission response"
+    else
+        echo -e "${RED}FAILED${NC}: Unexpected response format"
+        echo "Received: $RESPONSE"
+        echo "Expected response containing: {'message': 'Job submitted'}"
+        exit 1
+    fi
+    
+    # Wait for output generation
+    echo "Waiting for job processing..."
+    sleep 2
     
     # Check for output directory and files
-    if [ -d "../data_dir/output" ]; then
+    if [ -d "./outputs" ]; then
         print_result 0 "Output directory exists"
-        if [ "$(ls -A ../data_dir/output)" ]; then
+        if [ -d "./outputs/interim" ] && [ "$(ls -A ./outputs/interim)" ]; then
             print_result 0 "Output files were generated"
         else
-            echo -e "${YELLOW}WARNING${NC}: Output directory is empty"
+            echo -e "${RED}FAILED${NC}: No results found in outputs/interim directory"
+            exit 1
         fi
     else
-        echo -e "${YELLOW}WARNING${NC}: Output directory was not created"
+        echo -e "${RED}FAILED${NC}: Output directory was not created"
+        exit 1
     fi
 else
-    echo -e "${YELLOW}WARNING${NC}: job_submit.sh not found, skipping job submission test"
+    echo -e "${RED}FAILED${NC}: requests_test.py not found"
+    exit 1
 fi
 
 # Print final test summary
-echo -e "\nTest Summary (Installation-test-002):"
+echo -e "\nTest Summary (Job-Submit-test-003):"
 echo "✓ FastAPI URL accessibility check"
-echo "✓ Container running verification"
-if [ -f "./job_submit.sh" ]; then
-    echo "✓ Job submission test"
-fi
+echo "✓ Python3 availability check"
+echo "✓ Request test script execution"
+echo "✓ Job submission response verification"
+echo "✓ Output generation verification"
 
 echo -e "\n${GREEN}Job Submit tests completed successfully${NC}"
+exit 0

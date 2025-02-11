@@ -91,7 +91,7 @@ fi
 # Clean up test files
 rm -f "./outputs/$TEST_FILE" "./outputs/$CONTAINER_TEST_FILE"
 
-# Check if job_submit.sh exists and is executable
+# Check if job_submit.sh/request_test.py exists and is executable
 echo -e "\nChecking job submission capability..."
 if [ -f "./requests_test.py" ]; then
     echo "Running requests_test.py..."
