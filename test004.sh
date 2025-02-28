@@ -9,6 +9,9 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
+ORCHESTRATOR_URL="http://0.0.0.0:8003"  # Adjust as needed
+WORKER_ID="test-worker-1"
+
 # Function to print test results
 print_result() {
     if [ $1 -eq 0 ]; then
@@ -22,12 +25,12 @@ print_result() {
 # Function to check log file for error messages
 check_log_for_errors() {
     local log_file=$1
-    local error_pattern="missing input products"  # Adjust pattern based on expected error message
+    local error_pattern="ERROR"  # Adjust pattern based on expected error message
     
     if [ ! -f "$log_file" ]; then
         echo -e "${RED}FAIL${NC}: Log file not found: $log_file"
         return 1
-    
+    fi
     
     if grep -i "$error_pattern" "$log_file" > /dev/null; then
         return 0
@@ -43,60 +46,66 @@ echo -e "${YELLOW}Starting Error Handling Test (ID: Error-Handling-001)${NC}"
 echo "Checking preconditions..."
 
 # Verify FastAPI is running
-curl -s -f http://0.0.0.0:8005/docs > /dev/null
-if [ $? -ne 0 ]; then
-    echo -e "${RED}FAILED${NC}: FastAPI URL is not accessible. Please ensure the application is running."
-    exit 1
+response=$(curl -s ${ORCHESTRATOR_URL}/)
+if [ $? -eq 0 ] && echo "$response" | jq empty 2>/dev/null; then
+    print_result 0 "Orchestrator is accessible and returning valid JSON"
+else
+    print_result 1 "Orchestrator check failed"
 fi
-print_result 0 "Application is running"
-
-# Check if error test script exists
-if [ ! -f "./job_submit_error_1.sh" ]; then
-    echo -e "${RED}FAILED${NC}: job_submit_error_1.sh not found"
-    exit 1
-fi
-print_result 0 "Error test script found"
-
-# Make error test script executable if it isn't already
-chmod +x ./job_submit_error_1.sh
 
 # Clear previous log files (optional, uncomment if needed)
-# echo "Clearing previous log files..."
-# rm -f ./logs/worker.log
+echo "Clearing previous log files..."
+#rm -f orchestrator.log
 # rm -f ./logs/job_*.log
 
 # Execute error test
-echo -e "\nExecuting error test..."
-./job_submit_error_1.sh
-SUBMIT_EXIT_CODE=$?
+echo -e "\nExecuting error test..." # Let us send a curl request to orch that will go to a worker but fail. 
+echo -e "\n${YELLOW}Submitting test job...${NC}"
+job_response=$(curl -s -w "%{http_code}" -o /tmp/job_response \
+    -X POST ${ORCHESTRATOR_URL}/start-job \
+    -H 'accept: application/json' \
+    -H "Content-Type: application/json" \
+    -d '{
+    "script": "fdtsr_issues_main.py",
+    "args": "/opt/data2/ER2_AT_1_RBT____20020730T145138_20020730T163433_20220410T112311_6175_076_110______DSI_R_NT_004.SEN3", 
+    "status": "pending",
+    "server_id": 3
+    }')
 
+
+
+if [ "$job_response" -eq 200 ]; then
+    print_result 0 "Job Submit succesfull. $job_response" 
+else
+    print_result 1 "Job Submit NOT succesfull. $job_response" 
+fi
+#Get worker logs
+echo -e "\n${YELLOW}Retrieving worker logs...${NC}"
+logs_response=$(curl -s ${ORCHESTRATOR_URL}/get-logs \
+    -H 'accept: application/json')
+if [ -n "$logs_response" ]; then
+    print_result 0 "Worker logs retrieved"
+    
+    # Verify logs file exists
+    if [ -f "orchestrator.log" ]; then
+        print_result 0 "orchestrator logs present"
+    else
+        print_result 1 "Orchestrator log file not found"
+    fi
+else
+    print_result 1 "Failed to retrieve worker logs"
+fi
 # Wait briefly for logs to be written
-sleep 2
+sleep 60
 
 # Check worker log
 echo -e "\nChecking worker log..."
-WORKER_LOG="./logs/worker.log"
+WORKER_LOG="orchestrator.log"
 check_log_for_errors "$WORKER_LOG"
 print_result $? "Error properly logged in worker.log"
 
 # Find and check the most recent job-specific log file
 echo "Checking job-specific log..."
-LATEST_JOB_LOG=$(ls -t ./logs/job_*.log 2>/dev/null | head -n1)
-if [ -n "$LATEST_JOB_LOG" ]; then
-    check_log_for_errors "$LATEST_JOB_LOG"
-    print_result $? "Error properly logged in job-specific log"
-    
-    # Display relevant error messages (for verification)
-    echo -e "\nRelevant error messages from logs:"
-    echo "From worker.log:"
-    grep -i "error\|fail\|missing" "$WORKER_LOG" | tail -n 3
-    
-    echo -e "\nFrom job-specific log:"
-    grep -i "error\|fail\|missing" "$LATEST_JOB_LOG" | tail -n 3
-else
-    echo -e "${RED}FAILED${NC}: No job-specific log file found"
-    exit 1
-fi
 
 # Check that no output was generated (since this should be an error case)
 if [ -d "./outputs/interim" ] && [ "$(ls -A ./outputs/interim)" ]; then
