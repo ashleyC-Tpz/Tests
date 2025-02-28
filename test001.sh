@@ -33,7 +33,7 @@ echo -e "${YELLOW}Starting Installation Test (ID: Installation-test-001)${NC}"
 # Check preconditions
 echo "Checking preconditions..."
 
-# Verify OS
+# Verify OS uncomment if needed. 
 # if [[ "$(uname)" != "Linux" ]]; then
 #     echo -e "${RED}ERROR${NC}: This script must be run on Linux"
 #     exit 1
@@ -68,7 +68,7 @@ print_result $? "Docker compose up"
 echo "Waiting for application to start..."
 sleep 10
 
-# Test Orchestrator accessibility (Should be on port 8003)
+# Test Orchestrator accessibility (Should be on port 8003 or change to port setup in docker compose)
 echo "Testing API accessibility..."
 curl -s -f http://0.0.0.0:8003/ > /dev/null
 API_STATUS=$?

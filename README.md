@@ -47,7 +47,7 @@ When a worker finishes processing a job, it sends a POST request to `/worker-rep
 ### 5. Nominal-operations-002
 **Script**: `test006.sh`
 
-*Note: Description not provided in the original document*
+This test is to ensure that the application is working as intended and is producing products as expected but with 10 requests submitted being able to be processed.
 
 ### 6. Error-Handling-001
 **Script**: `test004.sh`

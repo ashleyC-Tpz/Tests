@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Test Case ID: Job-Submit-test-003
-# Description: Aims to verify that the job submission works correctly
+# Description: Aims to verify that the job submission works correctly by submitting a simple job request via python script similar to 
+# how the Orchestrator will reach out to the worker. 
 
 # Colors for output
 RED='\033[0;31m'
@@ -33,6 +34,7 @@ echo -e "${YELLOW}Starting Job Submit Test (ID: Job-Submit-test-003)${NC}"
 echo "Checking preconditions..."
 echo "Testing FastAPI URL accessibility..."
 
+#Ensure correct port is used for the worker. 
 curl -s -f http://0.0.0.0:8005/docs > /dev/null
 if [ $? -ne 0 ]; then
     echo -e "${RED}FAILED${NC}: FastAPI URL is not accessible. Please ensure the application is running."
